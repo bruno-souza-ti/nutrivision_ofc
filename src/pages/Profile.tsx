@@ -1,11 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { User as UserIcon, Settings, Shield, Bell, Check, LogOut, Camera, Save, Activity } from 'lucide-react';
+import { User as UserIcon, Settings, Shield, Bell, Check, LogOut, Camera, Save, Activity, Trophy, Flame } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuthContext } from '../context/AuthContext';
+import { useAppContext } from '../context/AppContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const Profile = () => {
   const { user, token, updateUser, logout } = useAuthContext();
+  const { mealHistory, dailyStats } = useAppContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -129,6 +131,30 @@ export const Profile = () => {
 
            <div className="mt-10 space-y-8">
              
+             {/* ATIVIDADE E ESTATISTICAS */}
+             <div>
+               <h4 className="text-sm font-black tracking-widest text-gray-400 uppercase mb-6 flex items-center"><span className="w-8 h-[2px] bg-gray-200 mr-3"></span>Atividade Recente</h4>
+               <div className="grid grid-cols-3 gap-4">
+                 <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-2xl border border-emerald-100 flex flex-col items-center text-center justify-center shadow-sm">
+                   <Activity className="text-emerald-500 mb-2" size={28} />
+                   <div className="text-3xl font-black text-emerald-900 leading-none mb-1">{mealHistory.length}</div>
+                   <div className="text-xs font-bold text-emerald-700 uppercase tracking-widest">Refeições</div>
+                 </div>
+                 <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-6 rounded-2xl border border-amber-100 flex flex-col items-center text-center justify-center shadow-sm">
+                   <Flame className="text-amber-500 mb-2" size={28} />
+                   <div className="text-3xl font-black text-amber-900 leading-none mb-1">{dailyStats.totalCalories}</div>
+                   <div className="text-xs font-bold text-amber-700 uppercase tracking-widest">Kcal Hoje</div>
+                 </div>
+                 <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-2xl border border-blue-100 flex flex-col items-center text-center justify-center shadow-sm">
+                   <Trophy className="text-blue-500 mb-2" size={28} />
+                   <div className="text-3xl font-black text-blue-900 leading-none mb-1">
+                     {mealHistory.length > 5 ? 'Nvl 2' : 'Nvl 1'}
+                   </div>
+                   <div className="text-xs font-bold text-blue-700 uppercase tracking-widest">Nível</div>
+                 </div>
+               </div>
+             </div>
+
              {/* CONFIGURACOES CLINICAS */}
              <div>
                <h4 className="text-sm font-black tracking-widest text-gray-400 uppercase mb-6 flex items-center"><span className="w-8 h-[2px] bg-gray-200 mr-3"></span>Metas Nutricionais</h4>

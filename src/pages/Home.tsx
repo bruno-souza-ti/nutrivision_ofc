@@ -114,7 +114,7 @@ export const Home = () => {
               className="bg-teal-700/50 text-white border border-teal-500/50 backdrop-blur-sm px-8 py-4 rounded-2xl font-black text-lg flex items-center justify-center shadow-xl hover:bg-teal-600/50 transition-colors flex-1 sm:flex-none"
             >
               <Edit3 className="mr-3" size={24} />
-              Manual
+              Adicionar Refeição
             </motion.button>
           </div>
         </div>
