@@ -1,0 +1,256 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Camera, Flame, Leaf, ArrowRight, Lightbulb, Droplets, Plus } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useAppContext } from '../context/AppContext';
+import { useAuthContext } from '../context/AuthContext';
+
+export const Home = () => {
+  const navigate = useNavigate();
+  const { dailyStats, mealHistory } = useAppContext();
+  const { user, token } = useAuthContext();
+  const [tips, setTips] = useState<string[]>([]);
+  const [loadingTips, setLoadingTips] = useState(false);
+
+  const [hydration, setHydration] = useState(() => {
+    const saved = localStorage.getItem('hydration_' + new Date().toDateString());
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  const hydrationGoal = 2000; // ml
+
+  const addWater = (amount: number) => {
+    setHydration(prev => {
+      const newVal = prev + amount;
+      localStorage.setItem('hydration_' + new Date().toDateString(), newVal.toString());
+      return newVal;
+    });
+  };
+
+  useEffect(() => {
+    const fetchTips = async () => {
+      if (!user) return;
+      setLoadingTips(true);
+      try {
+        const res = await fetch('/api/tips', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            calorieTarget: user.preferences.calorieTarget,
+            proteinTarget: user.preferences.proteinTarget,
+            currentCalories: dailyStats.totalCalories,
+            currentProtein: dailyStats.totalProtein
+          })
+        });
+        const data = await res.json();
+        if (data && data.tips) {
+          setTips(data.tips);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingTips(false);
+      }
+    };
+
+    fetchTips();
+  }, [user, dailyStats.totalMeals, token, dailyStats.totalCalories, dailyStats.totalProtein]);
+
+  const recentMeals = mealHistory.slice(0, 3);
+  const calorieTarget = user?.preferences?.calorieTarget || 2000;
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
+  return (
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
+      {/* Hero Section */}
+      <motion.section variants={itemVariants} className="bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 rounded-[2.5rem] p-8 md:p-14 text-white shadow-2xl shadow-teal-600/20 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white opacity-10 rounded-full blur-3xl mix-blend-overlay group-hover:scale-110 transition-transform duration-700" />
+        
+        <div className="relative z-10 max-w-2xl">
+          <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight tracking-tight text-white drop-shadow-sm">
+            Ajuste sua alimentação de forma inteligente com apenas 1 clique.
+          </h1>
+          <p className="text-teal-50 text-lg md:text-xl mb-10 max-w-lg font-medium leading-relaxed">
+            Descubra macros, calorias e obtenha insights instantâneos processando imagens da sua refeição com inteligência artificial.
+          </p>
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/scanner')}
+            className="bg-white text-emerald-700 px-8 py-4 rounded-2xl font-black text-lg flex items-center shadow-xl shadow-teal-900/20 hover:bg-emerald-50 transition-colors"
+          >
+            <Camera className="mr-3" size={24} />
+            Escanear Refeição
+            <ArrowRight className="ml-3 opacity-50" size={20} />
+          </motion.button>
+        </div>
+      </motion.section>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Quick Stats */}
+        <motion.section variants={itemVariants} className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-white">
+          <h2 className="text-2xl font-black mb-8 text-gray-800 flex items-center">
+             <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mr-4 shadow-inner">
+               <Flame className="text-orange-500" size={24} />
+             </div>
+             Resumo do Dia
+          </h2>
+          <div className="flex flex-col items-center justify-center py-4">
+             <div className="relative w-48 h-48 group">
+                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-400 to-cyan-400 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"/>
+                <svg className="w-full h-full transform -rotate-90 relative z-10 filter drop-shadow-sm">
+                  <circle cx="96" cy="96" r="84" stroke="currentColor" strokeWidth="16" fill="transparent" className="text-gray-100" />
+                  <motion.circle 
+                    initial={{ strokeDashoffset: 528 }}
+                    animate={{ strokeDashoffset: 528 - (528 * Math.min(dailyStats.totalCalories / calorieTarget, 1)) }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    cx="96" cy="96" r="84" stroke="url(#gradient)" strokeWidth="16" fill="transparent" 
+                    strokeDasharray={528} 
+                    strokeLinecap="round"
+                  />
+                  <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="100%" stopColor="#06b6d4" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-20">
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: 'spring' }} className="text-5xl font-black text-gray-800 tracking-tighter">
+                    {dailyStats.totalCalories}
+                  </motion.span>
+                  <span className="text-sm text-gray-500 font-bold uppercase tracking-widest mt-1">kcal</span>
+                </div>
+             </div>
+             <p className="mt-8 text-sm text-gray-500 font-bold bg-gray-100/80 px-4 py-2 rounded-full border border-gray-200">Meta recomendada: {calorieTarget} kcal</p>
+          </div>
+        </motion.section>
+
+        {/* Recent Meals */}
+        <motion.section variants={itemVariants} className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-white">
+          <h2 className="text-2xl font-black mb-8 text-gray-800 flex items-center">
+             <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center mr-4 shadow-inner">
+               <Leaf className="text-emerald-600" size={24} />
+             </div>
+             Histórico de Refeições
+          </h2>
+          
+          {recentMeals.length > 0 ? (
+            <div className="space-y-4">
+              {recentMeals.map((meal, index) => (
+                <motion.div 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 + (index * 0.1) }}
+                  key={meal.id} 
+                  className="group flex items-center space-x-4 p-4 hover:bg-emerald-50 rounded-2xl transition-all duration-300 border border-transparent hover:border-emerald-100 hover:shadow-sm"
+                >
+                  <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                    <img src={meal.image} alt={meal.foodName} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 truncate text-lg">{meal.foodName}</h3>
+                    <p className="text-emerald-600 font-bold">{meal.calories} kcal</p>
+                  </div>
+                  <div className="text-right flex-shrink-0 bg-gray-50 px-3 py-2 rounded-xl group-hover:bg-white transition-colors border border-gray-100">
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">PROT</div>
+                    <div className="font-black text-emerald-700">{meal.macronutrients.protein}g</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+             <div className="flex flex-col items-center justify-center h-48 text-gray-400 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200">
+                <Camera className="w-12 h-12 mb-3 text-gray-300" />
+                <p className="font-semibold">Nenhuma refeição hoje.</p>
+             </div>
+          )}
+        </motion.section>
+      </div>
+
+      {/* Hydration Goal */}
+      <motion.section variants={itemVariants} className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-white">
+        <h2 className="text-2xl font-black mb-6 text-gray-800 flex items-center">
+           <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mr-4 shadow-inner">
+             <Droplets className="text-blue-500" size={24} />
+           </div>
+           Meta de Hidratação
+        </h2>
+        <div className="flex flex-col md:flex-row items-center justify-between">
+           <div className="flex-1 w-full md:pr-8 mb-6 md:mb-0">
+             <div className="flex justify-between text-sm font-bold text-gray-500 mb-2">
+               <span>{hydration} ml</span>
+               <span>{hydrationGoal} ml</span>
+             </div>
+             <div className="w-full bg-gray-100 rounded-full h-6 overflow-hidden shadow-inner border border-gray-200">
+               <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ width: `${Math.min((hydration / hydrationGoal) * 100, 100)}%` }}
+                 transition={{ type: 'spring', duration: 1 }}
+                 className="bg-gradient-to-r from-blue-400 to-cyan-400 h-6 rounded-full relative"
+               >
+                 <div className="absolute inset-0 bg-white/20 w-full h-1/2 rounded-t-full"></div>
+               </motion.div>
+             </div>
+           </div>
+           <button 
+             onClick={() => addWater(200)}
+             className="w-full md:w-auto bg-blue-50 text-blue-600 border border-blue-200 px-6 py-3 rounded-xl font-bold flex items-center justify-center shadow-sm hover:shadow-md hover:bg-blue-100 hover:scale-105 transition-all"
+           >
+             <Plus size={20} className="mr-2" /> 200ml
+           </button>
+        </div>
+      </motion.section>
+
+      {(loadingTips || tips.length > 0) && (
+        <motion.section variants={itemVariants} className="bg-gradient-to-r from-amber-50 to-orange-50 p-8 rounded-[2rem] border border-orange-100 shadow-sm relative overflow-hidden">
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-orange-200 rounded-full blur-3xl opacity-50"></div>
+          <h2 className="text-2xl font-black mb-6 text-gray-800 flex items-center relative z-10">
+             <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mr-4 shadow-inner">
+               <Lightbulb className="text-orange-500" size={24} />
+             </div>
+             Dicas do Dia
+          </h2>
+          {loadingTips ? (
+             <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-orange-200/50 rounded w-3/4"></div>
+                <div className="h-4 bg-orange-200/50 rounded w-1/2"></div>
+             </div>
+          ) : (
+            <ul className="space-y-4 relative z-10">
+              {tips.map((tip, index) => (
+                <motion.li 
+                  initial={{ opacity: 0, x: -10 }} 
+                  animate={{ opacity: 1, x: 0 }} 
+                  transition={{ delay: index * 0.1 }}
+                  key={index} 
+                  className="flex items-start bg-white/60 p-4 rounded-xl shadow-sm border border-orange-50"
+                >
+                  <div className="w-2 h-2 mt-2 rounded-full bg-orange-400 mr-4 flex-shrink-0"></div>
+                  <p className="text-gray-700 font-medium leading-relaxed">{tip}</p>
+                </motion.li>
+              ))}
+            </ul>
+          )}
+        </motion.section>
+      )}
+    </motion.div>
+  );
+};

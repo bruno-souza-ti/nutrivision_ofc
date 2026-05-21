@@ -1,0 +1,10 @@
+{
+  "name": "Nutri-Vision",
+  "description": "Sistema de escaneamento de alimentos com análise em tempo real via Gemini e ferramentas de Processamento Digital de Imagem (PDI).",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
