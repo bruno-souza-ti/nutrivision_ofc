@@ -4,7 +4,6 @@ import { Activity, Flame, Utensils, Droplet, Download, Target, Beef, PieChart as
 import { useAppContext } from '../context/AppContext';
 import { useAuthContext } from '../context/AuthContext';
 import { StatCard } from '../components/ui';
-import { ExpertTips } from '../components/ExpertTips';
 import { motion } from 'motion/react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -258,8 +257,6 @@ export const Dashboard = () => {
           )}
         </motion.div>
       </div>
-      
-      <ExpertTips />
     </div>
   );
 };

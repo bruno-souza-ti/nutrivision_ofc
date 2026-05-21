@@ -247,12 +247,12 @@ Only output the JSON object, NO markdown formatting, NO extra text.`
         jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
         const parsedData = JSON.parse(jsonStr);
         res.json(parsedData);
-      } catch (aiErr) {
-        console.warn("AI Model failed to generate tips", aiErr);
+      } catch (aiErr: any) {
+        console.warn("AI Model failed to generate tips", aiErr?.message);
         res.json({ tips: ["Beba pelo menos 2 litros de água hoje.", "Adicione uma porção de vegetais verdes escuros no jantar."] });
       }
-    } catch(err) {
-      console.error(err);
+    } catch(err: any) {
+      console.warn("Error processing tips", err?.message);
       res.json({ tips: ["Beba bastante água.", "Priorize o consumo de vegetais hoje."] });
     }
   });
@@ -289,12 +289,12 @@ Retorne um JSON válido contendo um array de strings chamado "recommendations":
         jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
         const parsedData = JSON.parse(jsonStr);
         res.json(parsedData);
-      } catch (aiErr) {
-        console.warn("AI Model failed to generate expert tips", aiErr);
+      } catch (aiErr: any) {
+        console.warn("AI Model failed to generate expert tips", aiErr?.message);
         res.json({ recommendations: ["Adicione mais fontes de vitamina C e ferro às suas refeições.", "Tente rotacionar as fontes de proteínas e carboidratos para maior variedade."] });
       }
-    } catch(err) {
-      console.error(err);
+    } catch(err: any) {
+      console.warn("Error processing expert tips", err?.message);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

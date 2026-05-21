@@ -167,7 +167,7 @@ app.post('/api/tips', requireAuth, async (req, res) => {
     const parsedData = JSON.parse(jsonStr);
     res.json(parsedData);
   } catch(err) {
-    console.error(err);
+    console.warn("AI Model failed to generate tips", err?.message);
     res.json({ tips: ["Beba bastante água.", "Priorize o consumo de vegetais hoje."] });
   }
 });
@@ -204,11 +204,11 @@ Retorne um JSON válido contendo um array de strings chamado "recommendations":
       const parsedData = JSON.parse(jsonStr);
       res.json(parsedData);
     } catch (aiErr) {
-      console.warn("AI Model failed to generate expert tips", aiErr);
+      console.warn("AI Model failed to generate expert tips", aiErr?.message);
       res.json({ recommendations: ["Adicione mais fontes de vitamina C e ferro às suas refeições.", "Tente rotacionar as fontes de proteínas e carboidratos para maior variedade."] });
     }
   } catch(err) {
-    console.error(err);
+    console.warn("Error processing expert tips", err?.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
