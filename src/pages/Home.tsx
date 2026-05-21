@@ -91,10 +91,10 @@ export const Home = () => {
         
         <div className="relative z-10 max-w-2xl">
           <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight tracking-tight text-white drop-shadow-sm">
-            Ajuste sua alimentação de forma inteligente com apenas 1 clique.
+            Olá, {user?.name ? user.name.split(' ')[0] : 'Usuário'}!
           </h1>
           <p className="text-teal-50 text-lg md:text-xl mb-10 max-w-lg font-medium leading-relaxed">
-            Descubra macros, calorias e obtenha insights instantâneos processando imagens da sua refeição com inteligência artificial.
+            Pronto para registrar suas refeições de hoje? Tire uma foto e nossa IA cuida dos cálculos para você.
           </p>
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
             <motion.button 

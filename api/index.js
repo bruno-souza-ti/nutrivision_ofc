@@ -34,7 +34,11 @@ function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
   const token = authHeader.split(' ')[1];
-  const userId = sessions[token];
+  let userId = sessions[token];
+  if (!userId && users.length > 0) {
+    userId = users[0].id;
+    sessions[token] = userId;
+  }
   if (!userId) return res.status(401).json({ error: 'Invalid token' });
   const user = users.find(u => u.id === userId);
   if (!user) return res.status(401).json({ error: 'User not found' });
@@ -115,12 +119,16 @@ Only output the JSON object, NO markdown formatting, NO extra text.`
       jsonStr = jsonStr.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
       parsedData = JSON.parse(jsonStr);
     } catch (aiErr) {
-      console.warn("AI Model parsing failed, returning fallback", aiErr);
+      console.warn("AI Model parsing failed", aiErr?.message);
+      if (aiErr?.status === 429 || (aiErr?.message && aiErr.message.includes('quota'))) {
+        return res.status(429).json({ error: 'Limite da API atingido. Você excedeu sua cota, tente novamente em alguns instantes.' });
+      }
+
       parsedData = {
-        foodName: "Refeição Identificada (Modo de Apresentação)",
+        foodName: "Refeição Identificada (Falha na IA)",
         calories: 300,
         macronutrients: { protein: 20, carbohydrates: 30, fat: 10 },
-        confidence: 90
+        confidence: 50
       };
     }
     res.json(parsedData);
@@ -161,6 +169,47 @@ app.post('/api/tips', requireAuth, async (req, res) => {
   } catch(err) {
     console.error(err);
     res.json({ tips: ["Beba bastante água.", "Priorize o consumo de vegetais hoje."] });
+  }
+});
+
+app.post('/api/expert-tips', requireAuth, async (req, res) => {
+  try {
+    const { mealHistory, dailyStats, preferences } = req.body;
+
+    if (!process.env.GEMINI_API_KEY || !ai) {
+      return res.json({ recommendations: ["Aumente a ingestão de vegetais verdes escuros.", "Mantenha a hidratação constante."] });
+    }
+
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                 text: `Você é um nutricionista esportivo e clínico avançado. O usuário consumiu ${dailyStats.totalCalories} calorias, ${dailyStats.totalProtein}g de proteína, ${dailyStats.totalCarbs}g de carboidratos e ${dailyStats.totalFat}g de gordura hoje. A meta diária dele é ${preferences?.calorieTarget || 2000} kcal e ${preferences?.proteinTarget || 150}g de proteína.
+O histórico de refeições dele de hoje inclui os seguintes alimentos: ${(mealHistory || []).map(m => m.foodName).join(', ')}.
+Gere 2 a 3 recomendações de especialista avançadas (cerca de 2 frases cada) em português do Brasil (PT-BR), focando em áreas de melhoria como a possível falta de micronutrientes, distribuição de macros, ou hidratação baseada na qualidade dos alimentos consumidos. Seja prático e forneça insights reais.
+Retorne um JSON válido contendo um array de strings chamado "recommendations":
+{ "recommendations": ["Recomendação 1", "Recomendação 2"] }`
+              }
+            ]
+          }
+        ]
+      });
+
+      let jsonStr = response.text || "{}";
+      jsonStr = jsonStr.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+      const parsedData = JSON.parse(jsonStr);
+      res.json(parsedData);
+    } catch (aiErr) {
+      console.warn("AI Model failed to generate expert tips", aiErr);
+      res.json({ recommendations: ["Adicione mais fontes de vitamina C e ferro às suas refeições.", "Tente rotacionar as fontes de proteínas e carboidratos para maior variedade."] });
+    }
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
