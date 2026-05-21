@@ -24,6 +24,9 @@ export const Scanner = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedResult, setEditedResult] = useState<AnalysisResult | null>(null);
+
   const { addMeal } = useAppContext();
 
   const handleCapture = async (canvas: HTMLCanvasElement, base64: string) => {
@@ -46,22 +49,28 @@ export const Scanner = () => {
     try {
       const result = await analyzeFoodImage(base64);
       setCurrentResult(result);
-      
-      // Update global context
-      addMeal({
-        ...result,
-        image: base64
-      });
-
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 4500);
-
+      setEditedResult(result);
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || 'Falha ao analisar a imagem.');
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const confirmScan = () => {
+    if (!editedResult || !lastImage) return;
+    
+    addMeal({
+      ...editedResult,
+      image: lastImage
+    });
+
+    setShowSuccessToast(true);
+    setCurrentResult(null);
+    setEditedResult(null);
+    setLastImage(null);
+    setTimeout(() => setShowSuccessToast(false), 4500);
   };
 
   return (
@@ -120,13 +129,32 @@ export const Scanner = () => {
                   </div>
                   <div className="p-8 md:w-2/3 flex flex-col justify-center">
                     <div className="flex items-start justify-between">
-                      <div>
-                        <h2 className="text-3xl font-black text-gray-900 leading-tight">{currentResult.foodName}</h2>
-                        <div className="flex items-center mt-4">
+                      <div className="w-full">
+                        {isEditing && editedResult ? (
+                          <input 
+                            type="text" 
+                            className="text-3xl font-black text-gray-900 border-b-2 border-emerald-500 outline-none w-full bg-transparent mb-2" 
+                            value={editedResult.foodName} 
+                            onChange={e => setEditedResult({...editedResult, foodName: e.target.value})} 
+                          />
+                        ) : (
+                          <h2 className="text-3xl font-black text-gray-900 leading-tight">{editedResult?.foodName || currentResult.foodName}</h2>
+                        )}
+                        <div className="flex items-center mt-4 justify-between w-full">
                            <div className="bg-gradient-to-r from-emerald-400 to-teal-500 text-white px-4 py-1.5 rounded-xl text-sm font-black flex items-center shadow-lg shadow-emerald-500/30">
                              <Flame size={16} className="mr-2" />
-                             {currentResult.calories} kcal
+                             {isEditing && editedResult ? (
+                               <input type="number" className="w-16 bg-transparent outline-none text-white font-black" value={editedResult.calories || ''} onChange={e => setEditedResult({...editedResult, calories: parseInt(e.target.value) || 0})} />
+                             ) : (
+                               editedResult?.calories || currentResult.calories
+                             )} kcal
                            </div>
+                           <button 
+                             onClick={() => setIsEditing(!isEditing)}
+                             className="text-sm font-bold text-gray-500 hover:text-emerald-600 transition-colors"
+                           >
+                             {isEditing ? 'Concluir Edição' : 'Editar Valores'}
+                           </button>
                         </div>
                       </div>
                     </div>
@@ -137,14 +165,39 @@ export const Scanner = () => {
                   <h3 className="font-black text-xl mb-6 text-gray-800 tracking-tight">Distribuição de Macronutrientes</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      <div className="space-y-4 border-r border-gray-100 pr-0 md:pr-6">
-                        <Bar label="Proteína (Builder)" value={currentResult.macronutrients.protein} max={50} color="bg-rose-500" />
-                        <Bar label="Carboidratos (Energy)" value={currentResult.macronutrients.carbohydrates} max={100} color="bg-amber-500" />
-                        <Bar label="Gordura (Reserve)" value={currentResult.macronutrients.fat} max={50} color="bg-yellow-500" />
+                        {isEditing && editedResult ? (
+                           <div className="space-y-4">
+                             <div>
+                               <label className="text-xs font-bold text-gray-500 uppercase">Proteína (g)</label>
+                               <input type="number" className="w-full bg-gray-50 border rounded p-2 mt-1" value={editedResult.macronutrients.protein} onChange={e => setEditedResult({...editedResult, macronutrients: {...editedResult.macronutrients, protein: parseInt(e.target.value) || 0}})} />
+                             </div>
+                             <div>
+                               <label className="text-xs font-bold text-gray-500 uppercase">Carboidratos (g)</label>
+                               <input type="number" className="w-full bg-gray-50 border rounded p-2 mt-1" value={editedResult.macronutrients.carbohydrates} onChange={e => setEditedResult({...editedResult, macronutrients: {...editedResult.macronutrients, carbohydrates: parseInt(e.target.value) || 0}})} />
+                             </div>
+                             <div>
+                               <label className="text-xs font-bold text-gray-500 uppercase">Gordura (g)</label>
+                               <input type="number" className="w-full bg-gray-50 border rounded p-2 mt-1" value={editedResult.macronutrients.fat} onChange={e => setEditedResult({...editedResult, macronutrients: {...editedResult.macronutrients, fat: parseInt(e.target.value) || 0}})} />
+                             </div>
+                           </div>
+                        ) : (
+                          <>
+                            <Bar label="Proteína (Builder)" value={editedResult?.macronutrients.protein || currentResult.macronutrients.protein} max={50} color="bg-rose-500" />
+                            <Bar label="Carboidratos (Energy)" value={editedResult?.macronutrients.carbohydrates || currentResult.macronutrients.carbohydrates} max={100} color="bg-amber-500" />
+                            <Bar label="Gordura (Reserve)" value={editedResult?.macronutrients.fat || currentResult.macronutrients.fat} max={50} color="bg-yellow-500" />
+                          </>
+                        )}
                      </div>
                      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-emerald-100 shadow-inner">
                         <div className="text-emerald-400 mb-3"><Flame size={40} /></div>
                         <div className="text-sm font-black text-emerald-600 uppercase tracking-widest opacity-80">Impacto Calórico</div>
-                        <div className="text-5xl font-black text-emerald-900 mt-2 tracking-tighter">{currentResult.calories} <span className="text-xl text-emerald-700/60 font-black">kcal</span></div>
+                        <div className="text-5xl font-black text-emerald-900 mt-2 tracking-tighter">{editedResult?.calories || currentResult.calories} <span className="text-xl text-emerald-700/60 font-black">kcal</span></div>
+                        <button 
+                          onClick={confirmScan}
+                          className="mt-6 w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center"
+                        >
+                           <CheckCircle className="mr-2" size={20} /> Confirmar Refeição
+                        </button>
                      </div>
                   </div>
                 </div>

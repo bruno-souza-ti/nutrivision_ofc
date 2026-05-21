@@ -7,6 +7,7 @@ interface AppContextType {
   dailyStats: DailyStats;
   mealHistory: MealHistoryItem[];
   addMeal: (meal: Omit<MealHistoryItem, 'id' | 'timestamp'>) => void;
+  deleteMeal: (id: string) => Promise<void>;
 }
 
 const INITIAL_STATS: DailyStats = {
@@ -114,8 +115,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   };
 
+  const deleteMeal = async (id: string) => {
+    if (isSupabaseConfigured && supabase && user) {
+      try {
+        const { error } = await supabase.from('meals').delete().eq('id', id).eq('user_id', user.id);
+        if (error) throw error;
+      } catch (err) {
+        console.error('Failed to delete from Supabase:', err);
+      }
+    }
+
+    setMealHistory(prev => {
+      const newList = prev.filter(m => m.id !== id);
+      recalculateStats(newList);
+      return newList;
+    });
+  };
+
   return (
-    <AppContext.Provider value={{ dailyStats, mealHistory, addMeal }}>
+    <AppContext.Provider value={{ dailyStats, mealHistory, addMeal, deleteMeal }}>
       {children}
     </AppContext.Provider>
   );

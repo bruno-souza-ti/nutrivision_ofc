@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Flame, Leaf, ArrowRight, Lightbulb, Droplets, Plus } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Camera, Flame, Leaf, ArrowRight, Lightbulb, Droplets, Plus, Trash2, X, Edit3 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAppContext } from '../context/AppContext';
 import { useAuthContext } from '../context/AuthContext';
+import { MealHistoryItem } from '../types';
 
 export const Home = () => {
   const navigate = useNavigate();
-  const { dailyStats, mealHistory } = useAppContext();
+  const { dailyStats, mealHistory, deleteMeal } = useAppContext();
   const { user, token } = useAuthContext();
   const [tips, setTips] = useState<string[]>([]);
   const [loadingTips, setLoadingTips] = useState(false);
+  const [deleteModalMealId, setDeleteModalMealId] = useState<string | null>(null);
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualMeal, setManualMeal] = useState({
+    foodName: '', calories: 0, protein: 0, carbs: 0, fat: 0
+  });
 
   const [hydration, setHydration] = useState(() => {
     const saved = localStorage.getItem('hydration_' + new Date().toDateString());
@@ -90,16 +96,27 @@ export const Home = () => {
           <p className="text-teal-50 text-lg md:text-xl mb-10 max-w-lg font-medium leading-relaxed">
             Descubra macros, calorias e obtenha insights instantâneos processando imagens da sua refeição com inteligência artificial.
           </p>
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/scanner')}
-            className="bg-white text-emerald-700 px-8 py-4 rounded-2xl font-black text-lg flex items-center shadow-xl shadow-teal-900/20 hover:bg-emerald-50 transition-colors"
-          >
-            <Camera className="mr-3" size={24} />
-            Escanear Refeição
-            <ArrowRight className="ml-3 opacity-50" size={20} />
-          </motion.button>
+          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/scanner')}
+              className="bg-white text-emerald-700 px-8 py-4 rounded-2xl font-black text-lg flex items-center justify-center shadow-xl shadow-teal-900/20 hover:bg-emerald-50 transition-colors flex-1 sm:flex-none"
+            >
+              <Camera className="mr-3" size={24} />
+              Escanear
+              <ArrowRight className="ml-3 opacity-50" size={20} />
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowManualAdd(true)}
+              className="bg-teal-700/50 text-white border border-teal-500/50 backdrop-blur-sm px-8 py-4 rounded-2xl font-black text-lg flex items-center justify-center shadow-xl hover:bg-teal-600/50 transition-colors flex-1 sm:flex-none"
+            >
+              <Edit3 className="mr-3" size={24} />
+              Manual
+            </motion.button>
+          </div>
         </div>
       </motion.section>
 
@@ -169,9 +186,18 @@ export const Home = () => {
                     <h3 className="font-bold text-gray-900 truncate text-lg">{meal.foodName}</h3>
                     <p className="text-emerald-600 font-bold">{meal.calories} kcal</p>
                   </div>
-                  <div className="text-right flex-shrink-0 bg-gray-50 px-3 py-2 rounded-xl group-hover:bg-white transition-colors border border-gray-100">
-                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">PROT</div>
-                    <div className="font-black text-emerald-700">{meal.macronutrients.protein}g</div>
+                  <div className="text-right flex-shrink-0 bg-gray-50 px-3 py-2 rounded-xl group-hover:bg-white transition-colors border border-gray-100 flex items-center space-x-3">
+                    <div className="flex flex-col items-end mr-2">
+                       <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">PROT</div>
+                       <div className="font-black text-emerald-700">{meal.macronutrients.protein}g</div>
+                    </div>
+                    <button 
+                       onClick={() => setDeleteModalMealId(meal.id)}
+                       className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-colors"
+                       aria-label="Deletar refeição"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -251,6 +277,127 @@ export const Home = () => {
           )}
         </motion.section>
       )}
+
+      <AnimatePresence>
+        {deleteModalMealId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
+              <button 
+                onClick={() => setDeleteModalMealId(null)}
+                className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors bg-gray-100 hover:bg-gray-200 p-2 rounded-full"
+              >
+                 <X size={16} />
+              </button>
+              <div className="mb-6 flex flex-col items-center text-center">
+                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                   <Trash2 className="text-red-500" size={32} />
+                 </div>
+                 <h3 className="text-2xl font-black text-gray-900 mb-2">Excluir Refeição</h3>
+                 <p className="text-gray-500 font-medium">Tem certeza que deseja remover esta refeição? Ela será excluída do seu histórico e as calorias serão recalculadas.</p>
+              </div>
+              <div className="flex space-x-4">
+                <button 
+                  onClick={() => setDeleteModalMealId(null)}
+                  className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => {
+                    if (deleteModalMealId) {
+                      deleteMeal(deleteModalMealId);
+                      setDeleteModalMealId(null);
+                    }
+                  }}
+                  className="flex-1 py-3 px-4 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all hover:-translate-y-0.5"
+                >
+                  Excluir
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showManualAdd && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
+            >
+              <button 
+                onClick={() => setShowManualAdd(false)}
+                className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors bg-gray-100 hover:bg-gray-200 p-2 rounded-full z-10"
+              >
+                 <X size={16} />
+              </button>
+              <h3 className="text-2xl font-black text-gray-900 mb-6">Adição Manual</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Nome do Alimento</label>
+                  <input type="text" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all" placeholder="Ex: Arroz com Feijão" value={manualMeal.foodName} onChange={e => setManualMeal({...manualMeal, foodName: e.target.value})} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Calorias (kcal)</label>
+                    <input type="number" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all" placeholder="0" value={manualMeal.calories || ''} onChange={e => setManualMeal({...manualMeal, calories: parseInt(e.target.value) || 0})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Proteínas (g)</label>
+                    <input type="number" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all" placeholder="0" value={manualMeal.protein || ''} onChange={e => setManualMeal({...manualMeal, protein: parseInt(e.target.value) || 0})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Carboidratos (g)</label>
+                    <input type="number" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all" placeholder="0" value={manualMeal.carbs || ''} onChange={e => setManualMeal({...manualMeal, carbs: parseInt(e.target.value) || 0})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Gorduras (g)</label>
+                    <input type="number" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-medium outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all" placeholder="0" value={manualMeal.fat || ''} onChange={e => setManualMeal({...manualMeal, fat: parseInt(e.target.value) || 0})} />
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    const mealItem = {
+                      foodName: manualMeal.foodName || 'Refeição Manual',
+                      calories: manualMeal.calories,
+                      macronutrients: {
+                        protein: manualMeal.protein,
+                        carbohydrates: manualMeal.carbs,
+                        fat: manualMeal.fat
+                      },
+                      image: 'https://images.unsplash.com/photo-1495195129352-aeb325a55b65?w=500&q=80',
+                      detailedAnalysis: 'Registro manual.'
+                    };
+                    addMeal(mealItem);
+                    setShowManualAdd(false);
+                    setManualMeal({ foodName: '', calories: 0, protein: 0, carbs: 0, fat: 0 });
+                  }}
+                  className="w-full pt-4 mt-2 py-3 bg-emerald-500 text-white font-black text-lg rounded-xl shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 transition-colors"
+                >
+                  Salvar Refeição
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
